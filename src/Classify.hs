@@ -22,7 +22,9 @@ classify
     -> Writer [String] [Implementation]
 classify round cs is = do
   tell ["Round " ++ show round ++ ": trying to classify between " ++ show is]
-  ciss <- forM cs $ \(c,sig) -> do
+  cs' <- filterClassifiers cs
+  cs'' <- filterSame cs'
+  ciss <- forM cs'' $ \(c,sig) -> do
     let cis = classifies sig
     tell ["Round " ++ show round ++ ": " ++ show c ++ " classifies " ++ show cis]
     return cis
@@ -37,9 +39,7 @@ classify round cs is = do
                   return []
         [] -> return []
         _ -> do
-          cs' <- filterClassifiers $ map (second $ flip restrictSignature leftIs) cs
-          cs'' <- filterSame cs'
-          classify (succ round) cs'' leftIs
+          classify (succ round) (map (second $ flip restrictSignature leftIs) cs'') leftIs
 
 filterClassifiers
     :: [(Classifier, Signature Result)]
@@ -69,10 +69,7 @@ classifyIO cs is = do
   sigs <- runParIO $ do
     sigsIvs <- mapM (buildSignature is) cs
     traverse (traverse get) sigsIvs
-  let (r, msgs) = runWriter $ do
-        cs' <- filterClassifiers $ zip cs sigs
-        cs'' <- filterSame cs'
-        classify 1 cs'' is
+  let (r, msgs) = runWriter $ classify 1 (zip cs sigs) is
   mapM_ putStrLn msgs
   case r of
     [] -> do putStrLn "Successfully classified everything"
