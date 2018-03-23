@@ -16,8 +16,9 @@ import           Runner
 import           Signature
 
 classify
-    :: Int
-    -> [(Classifier, Signature Result)]
+    :: Ord a
+    => Int
+    -> [(Classifier, Signature a)]
     -> [Implementation]
     -> Writer [String] [Implementation]
 classify round cs is = do
@@ -29,8 +30,22 @@ classify round cs is = do
     tell ["Round " ++ show round ++ ": " ++ show c ++ " classifies " ++ show cis]
     return cis
   case concat ciss of
-    [] -> do tell ["Nothing new found"]
-             return is
+    [] -> do
+      tell ["Nothing new found"]
+      case cs'' of
+        [] -> do
+          tell ["No more classifiers"]
+          return is
+        [(c,s)] -> do
+          tell ["The last classifier cut implementations into the following classes:"]
+          let Clasterization cls = clasterize s
+          tell [show $ cls]
+          return is
+        ((_,Signature s):_) -> do
+          tell ["But some non-trivial classifiers still present, try building the composite one"]
+          let rs = map (map snd . getSig . snd) cs
+              rs' = zip (map fst s) rs
+          classify (succ round) [(Classifier "composite", Signature rs')] is
     found -> do
       let leftIs = is \\ found
       tell ["Implementations left not strictly classified: " ++ show leftIs]
@@ -42,8 +57,9 @@ classify round cs is = do
           classify (succ round) (map (second $ flip restrictSignature leftIs) cs'') leftIs
 
 filterClassifiers
-    :: [(Classifier, Signature Result)]
-    -> Writer [String] [(Classifier, Signature Result)]
+    :: Ord a
+    => [(Classifier, Signature a)]
+    -> Writer [String] [(Classifier, Signature a)]
 filterClassifiers cs = flip filterM cs $ \(c,s) ->
   if isClassifier s
   then return True
@@ -51,8 +67,9 @@ filterClassifiers cs = flip filterM cs $ \(c,s) ->
           return False
 
 filterSame
-    :: [(Classifier, Signature Result)]
-    -> Writer [String] [(Classifier, Signature Result)]
+    :: Ord a
+    => [(Classifier, Signature a)]
+    -> Writer [String] [(Classifier, Signature a)]
 filterSame cs = do
   let Clasterization css = clasterizationBy (compare `on` snd) cs
   forM css $ \eqCs -> case eqCs of

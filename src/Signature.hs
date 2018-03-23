@@ -17,16 +17,16 @@ import           Runner
 newtype Signature a = Signature { getSig :: [ (Implementation, a) ]}
   deriving (Eq, Ord, Show, Functor, Foldable, Traversable)
 
-restrictSignature :: Signature Result -> [Implementation] -> Signature Result
+restrictSignature :: Signature a -> [Implementation] -> Signature a
 restrictSignature (Signature sig) is = Signature $ filter (flip elem is . fst) sig
 
-isClassifier :: Signature Result -> Bool
+isClassifier :: Eq a => Signature a -> Bool
 isClassifier (Signature []) = True -- vacously
 isClassifier (Signature ((i,r):rs)) = not $ all ((== r) . snd) rs
 
 -- isClassifier s = length (clasterize s) > 1
 
-clasterize :: Signature Result -> Clasterization Implementation
+clasterize :: Ord a => Signature a -> Clasterization Implementation
 clasterize sig = fst <$> clasterizationBy (compare `on` snd) (getSig sig)
 
 isIsolated :: Signature Result -> Maybe Implementation
@@ -34,7 +34,7 @@ isIsolated s | Clasterization [[i],_] <- clasterize s = Just i
              | Clasterization [_,[i]] <- clasterize s = Just i
              | otherwise                              = Nothing
 
-classifies :: Signature Result -> [Implementation]
+classifies :: Ord a => Signature a -> [Implementation]
 classifies = uniques . clasterize
 
 buildSignature :: [Implementation] -> Classifier -> ParIO (Signature (IVar Result))
