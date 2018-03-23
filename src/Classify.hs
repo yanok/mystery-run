@@ -74,6 +74,5 @@ classifyIO cs is = do
   case r of
     [] -> do putStrLn "Successfully classified everything"
              return True
-    _ -> do putStrLn $ "Failed to classify between " ++ show r ++
-              ". " ++ show (length r - 1) ++ " more classifiers missing"
+    _ -> do putStrLn $ "Failed to classify between " ++ show r
             return False
