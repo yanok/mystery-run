@@ -36,7 +36,10 @@ classify round cs is = do
         [_] -> do tell ["Can figure out the last one by exclusion"]
                   return []
         [] -> return []
-        _ -> classify (succ round) (map (second $ flip restrictSignature leftIs) cs) leftIs
+        _ -> do
+          cs' <- filterClassifiers $ map (second $ flip restrictSignature leftIs) cs
+          cs'' <- filterSame cs'
+          classify (succ round) cs'' leftIs
 
 filterClassifiers
     :: [(Classifier, Signature Result)]
